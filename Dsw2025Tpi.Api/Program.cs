@@ -73,7 +73,7 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>
 .AddDefaultTokenProviders();
 
 var jwtConfig = builder.Configuration.GetSection("JwtConfig");
-var keyText = jwtConfig["Key"] ?? throw new ArgumentNullException("JwtConfig:Key no está configurada.");
+var keyText = jwtConfig["Key"] ?? throw new ArgumentNullException("JwtConfig:Key no estï¿½ configurada.");
 var key = Encoding.UTF8.GetBytes(keyText);
 
 builder.Services.AddAuthentication
@@ -114,7 +114,10 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
-DbInitializer.DbStart(app);
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    DbInitializer.DbStart(app);
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -134,8 +137,13 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-await DbInitializer.DbIdentityStart(app);
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    await DbInitializer.DbIdentityStart(app);
+}
 
 app.MapHealthChecks("/healthcheck");
 
 app.Run();
+
+public partial class Program { }
