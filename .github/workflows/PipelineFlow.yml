@@ -1,4 +1,4 @@
-name: Build and Deploy to Azure App Service
+name: Build, Test and Deploy to Azure App Service
 
 on:
   push:
@@ -12,7 +12,27 @@ env:
   IMAGE_NAME: dsw2025tpi-back
 
 jobs:
+  run-tests:
+    name: 1. Ejecutar Pruebas Automatizadas (.NET)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Obtener el código
+        uses: actions/checkout@v4
+
+      - name: 2. Configurar .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: 3. Restaurar dependencias
+        run: dotnet restore
+
+      - name: 4. Ejecutar Pruebas Automatizadas
+        run: dotnet test --no-restore --verbosity normal
+
   build-and-deploy:
+    name: 2. Construir y Desplegar
+    needs: [run-tests]
     runs-on: ubuntu-latest
     steps:
       - name: 1. Obtener el código
