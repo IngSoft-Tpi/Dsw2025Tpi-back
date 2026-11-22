@@ -67,7 +67,40 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         // EnsureCreated skips databases that already have tables from another context.
         identity.GetService<IRelationalDatabaseCreator>().CreateTables();
 
-        return base.CreateHost(builder);
+        var host = base.CreateHost(builder);
+        SeedIdentityRolesAndAdmin(host.Services);
+        return host;
+    }
+
+    private static void SeedIdentityRolesAndAdmin(IServiceProvider services)
+    {
+        using var scope = services.CreateScope();
+        var roleManager = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.RoleManager<Microsoft.AspNetCore.Identity.IdentityRole>>();
+        var userManager = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<Microsoft.AspNetCore.Identity.IdentityUser>>();
+
+        foreach (var roleName in new[] { "admin", "user" })
+        {
+            if (!roleManager.RoleExistsAsync(roleName).GetAwaiter().GetResult())
+            {
+                roleManager.CreateAsync(new Microsoft.AspNetCore.Identity.IdentityRole(roleName)).GetAwaiter().GetResult();
+            }
+        }
+
+        const string adminEmail = "admin@example.com";
+        if (userManager.FindByEmailAsync(adminEmail).GetAwaiter().GetResult() is null)
+        {
+            var adminUser = new Microsoft.AspNetCore.Identity.IdentityUser
+            {
+                UserName = "admin",
+                Email = adminEmail,
+                EmailConfirmed = true
+            };
+            var result = userManager.CreateAsync(adminUser, "Admin123!").GetAwaiter().GetResult();
+            if (result.Succeeded)
+            {
+                userManager.AddToRoleAsync(adminUser, "admin").GetAwaiter().GetResult();
+            }
+        }
     }
 
     public override async ValueTask DisposeAsync()
