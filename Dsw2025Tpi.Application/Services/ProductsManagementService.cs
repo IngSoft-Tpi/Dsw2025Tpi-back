@@ -123,11 +123,14 @@ public class ProductsManagementService : IProductsManagementService
             : request.Status == "disabled"
                 ? (bool?)false
                 : null;
-        var activeProducts = await _repository.GetFiltered<Product>(p =>(
-            
-            (isActive==null || p.IsActive == isActive)&&
-            string.IsNullOrEmpty(request.Search) || p.Name.Contains(request.Search))
-            );
+        var search = request.Search?.ToLower();
+        var activeProducts = await _repository.GetFiltered<Product>(p =>
+            (isActive == null || p.IsActive == isActive) &&
+            (string.IsNullOrEmpty(search) ||
+             p.Name.ToLower().Contains(search) ||
+             p.Sku.ToLower().Contains(search) ||
+             p.InternalCode.ToLower().Contains(search))
+        );
         if (activeProducts is null || !activeProducts.Any())
            throw new EntityNotFoundException("No se encontraron productos");
 
