@@ -73,7 +73,7 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>
 .AddDefaultTokenProviders();
 
 var jwtConfig = builder.Configuration.GetSection("JwtConfig");
-var keyText = jwtConfig["Key"] ?? throw new ArgumentNullException("JwtConfig:Key no está configurada.");
+var keyText = jwtConfig["Key"] ?? throw new ArgumentNullException("JwtConfig:Key no estï¿½ configurada.");
 var key = Encoding.UTF8.GetBytes(keyText);
 
 builder.Services.AddAuthentication
@@ -114,15 +114,20 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
-DbInitializer.DbStart(app);
-
-if (app.Environment.IsDevelopment())
+if (!app.Environment.IsEnvironment("Testing"))
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    DbInitializer.DbStart(app);
 }
 
-app.UseHttpsRedirection();
+// Swagger habilitado en todos los entornos para poder probar la API desde la URL de Azure
+app.UseSwagger();
+app.UseSwaggerUI();
+
+// En el contenedor la app escucha solo HTTP (8080); el TLS lo termina Azure App Service
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors("AllowFront");
 
@@ -134,8 +139,13 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-await DbInitializer.DbIdentityStart(app);
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    await DbInitializer.DbIdentityStart(app);
+}
 
 app.MapHealthChecks("/healthcheck");
 
 app.Run();
+
+public partial class Program { }
